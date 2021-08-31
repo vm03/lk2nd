@@ -15,6 +15,7 @@ MODULES += \
 OBJS += \
 	$(LOCAL_DIR)/aboot.o \
 	$(LOCAL_DIR)/fastboot.o \
+	$(LOCAL_DIR)/fit.o \
 	$(LOCAL_DIR)/fs_boot.o
 
 ifneq ($(DISABLE_RECOVERY_MESSAGES),1)

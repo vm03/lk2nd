@@ -2320,6 +2320,8 @@ int copy_dtb(uint8_t *boot_image_start, unsigned int scratch_offset)
 }
 #endif
 
+extern int fit_boot(void *data, unsigned sz);
+
 void cmd_boot(const char *arg, void *data, unsigned sz)
 {
 	unsigned kernel_actual;
@@ -2357,6 +2359,16 @@ void cmd_boot(const char *arg, void *data, unsigned sz)
 	}
 
 	hdr = (struct boot_img_hdr *)data;
+
+	ret = fit_boot((data + hdr->page_size), sz);
+	if (ret == -3 /* FDT_ERR_NOSPACE */) {
+		fastboot_fail("No space for this image");
+		return;
+	}
+	else if (ret != -9 /* FDT_ERR_BADMAGIC */) {
+		fastboot_fail("invalid FIT image");
+		return;
+	}
 
 	/* ensure commandline is terminated */
 	hdr->cmdline[BOOT_ARGS_SIZE-1] = 0;
