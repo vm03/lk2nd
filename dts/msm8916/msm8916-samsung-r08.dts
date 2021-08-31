@@ -29,6 +29,8 @@
 		compatible = "samsung,gt510lte", "qcom,msm8916", "lk2nd,device";
 		lk2nd,match-bootloader = "T555*";
 
+		lk2nd,dtb = "msm8916-samsung-gt510lte-modem";
+
 		lk2nd,keys = <KEY_HOME 109 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 	};
 

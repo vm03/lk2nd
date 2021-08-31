@@ -12,6 +12,8 @@
 		compatible = "longcheer,l8150", "qcom,msm8916", "lk2nd,device";
 		lk2nd,match-bootloader = "crackling-*";
 
+		lk2nd,dtb = "msm8916-longcheer-l8150-modem";
+
 		panel {
 			compatible = "longcheer,l8150-panel";
 
@@ -29,6 +31,8 @@
 		model = "Android One Gen 2 SEED (Longcheer L8150)";
 		compatible = "longcheer,l8150", "qcom,msm8916", "lk2nd,device";
 		lk2nd,match-bootloader = "SEED-*";
+
+		lk2nd,dtb = "msm8916-longcheer-l8150-modem";
 
 		panel {
 			compatible = "longcheer,l8150-panel";
