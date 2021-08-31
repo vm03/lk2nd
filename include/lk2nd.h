@@ -33,6 +33,7 @@ struct lk2nd_device {
 
 	const char *model;
 	const char *cmdline;
+	const char *dtb;
 
 	const char *device;
 	const char *bootloader;

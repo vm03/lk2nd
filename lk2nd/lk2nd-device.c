@@ -298,6 +298,12 @@ static void lk2nd_parse_device_node(const void *fdt)
 	else
 		dprintf(CRITICAL, "Device node is missing 'model' property\n");
 
+	lk2nd_dev.dtb = fdt_copyprop_str(fdt, offset, "lk2nd,dtb");
+	if (lk2nd_dev.model)
+		dprintf(INFO, "Device dtb: %s\n", lk2nd_dev.dtb);
+	else
+		dprintf(CRITICAL, "Device node is missing 'lk2nd,dtb' property\n");
+
 	/* Check if the bootloader selected a weird DTB and we need to override */
 	if (!dev_tree_get_dt_entry(fdt, offset, &lk2nd_dev.dt_entry) && offset)
 		/* Try again on root node */
