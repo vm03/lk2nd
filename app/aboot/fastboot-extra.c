@@ -385,9 +385,13 @@ static void cmd_oem_dump_spmi_qpnp(const char *arg, void *data, unsigned sz)
 	fastboot_info(response);
 	for (lsid = 0; lsid < 2; ++lsid) {
 		for (pid = 0; pid <= 0xff; ++pid) {
+			/* HACK: spmi returns last successfully read value with no error
+			 * on reads for non-existent blocks, "clear" the return by reading
+			 * a known zero value. */
+			pm8x41_reg_read(0x010f);
 			type =    pm8x41_reg_read(lsid << 16 | pid << 8 | 0x04);
 			subtype = pm8x41_reg_read(lsid << 16 | pid << 8 | 0x05);
-			if (type == 0x14 && subtype == 0x10)
+			if (type == 0x14 && subtype == 0x10 || type == 0x00)
 				continue;
 			snprintf(response, sizeof(response),
 				 " %1hhd 0x%02hhx | 0x%02hhx | 0x%02hhx | %s; %s",
