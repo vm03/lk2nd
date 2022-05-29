@@ -8,6 +8,7 @@
 #include <platform.h>
 #include <platform/iomap.h>
 #include <platform/timer.h>
+#include <pm8x41.h>
 #include <pm8x41_regulator.h>
 #include <reg.h>
 #include <smd.h>
@@ -265,6 +266,140 @@ static void cmd_oem_dump_regulators(const char *arg, void *data, unsigned sz)
 	fastboot_okay("");
 }
 
+struct spmi_qpnp_names {
+	uint8_t type;
+	uint8_t subtype;
+	char *name;
+};
+
+static struct spmi_qpnp_names qpnp_db[] = {
+	{0x51, 0x00, "REVID"},
+	{0x51, 0x0b, "PM8916"},
+
+	{0x0b, 0x00, "INTERFACE"},
+	{0x0b, 0x01, "SPMI"},
+	{0x0b, 0x02, "INTBUS_ARB"},
+
+	{0x0a, 0x00, "INTERRUPT"},
+	{0x0a, 0x01, "PNP_INTERRUPT"},
+
+	{0x01, 0x00, "PON"},
+	{0x01, 0x01, "LV_PON"},
+
+	{0x02, 0x00, "CHARGER"},
+	{0x02, 0x15, "LIN_CHGR"},
+	{0x02, 0x16, "LIN_BAT_IF"},
+	{0x02, 0x17, "LIN_USB"},
+	{0x02, 0x18, "LIN_MISC"},
+	{0x02, 0x20, "COINCELL"},
+
+	{0x09, 0x00, "ALARM"},
+	{0x09, 0x08, "TEMP_ALARM"},
+
+	{0x0e, 0x00, "MBG"},
+
+	{0x08, 0x00, "ADC"},
+	{0x08, 0x09, "ADC sub"},
+	{0x08, 0x0b, "VADC1"},
+	{0x08, 0x0c, "VADC1 (2)"},
+	{0x08, 0x22, "ADC sub (2)"},
+
+	{0x0d, 0x00, "BMS"},
+	{0x0d, 0x02, "VM_BMS"},
+
+	{0x06, 0x00, "CLOCK"},
+	{0x06, 0x08, "BB_CLK"},
+	{0x06, 0x09, "RF_CLK"},
+	{0x06, 0x0c, "SLP_CLK"},
+	{0x06, 0x0b, "DIV_CLK"},
+
+	{0x07, 0x00, "RTC"},
+	{0x07, 0x01, "RTC_RW"},
+	{0x07, 0x03, "RTC_ALARM"},
+
+	{0x11, 0x00, "MPP"},
+	{0x11, 0x03, "MPP_4CH_SINK"},
+	{0x11, 0x04, "ULT_MPP_4CH_SINK"},
+	{0x11, 0x05, "MPP_4CH_AOUT"},
+	{0x11, 0x06, "ULT_MPP_4CH_AOUT"},
+	{0x11, 0x07, "MPP_4CH_AOUT_SINK"},
+	{0x11, 0x0B, "MPP_8CH_SINK"},
+	{0x11, 0x0D, "MPP_8CH_AOUT"},
+	{0x11, 0x0F, "MPP_8CH_AOUT_SINK"},
+
+	{0x10, 0x00, "GPIO"},
+	{0x10, 0x01, "GPIO_4CH"},
+	{0x10, 0x05, "GPIOC_4CH"},
+	{0x10, 0x09, "GPIO_8CH"},
+	{0x10, 0x0D, "GPIOC_8CH"},
+
+	{0x1d, 0x00, "BCLK GEN"},
+	{0x1d, 0x19, "CLK"},
+	{0x1d, 0x08, "MAIN"},
+
+	{0x22, 0x00, "SMPS"},
+	{0x22, 0x01, "PS_LV2P5A"},
+	{0x22, 0x02, "PS_LV3P0A"},
+	{0x22, 0x03, "PS_LV1P8A"},
+	{0x22, 0x04, "PS_MV1P5A"},
+	{0x22, 0x05, "PS_MV2P5A"},
+	{0x22, 0x0d, "CTRL"},
+	{0x22, 0x10, "CTRL (2)"},
+
+	{0x21, 0x00, "LDO"},
+
+	{0x13, 0x00, "LPG"},
+	{0x13, 0x0b, "PWM Channel"},
+
+	{0x15, 0x00, "HAPTICS"},
+	{0x15, 0x01, "VIB_SE"},
+
+	{0x23, 0x00, "CDC"},
+	{0x23, 0x01, "CDC D"},
+	{0x23, 0x09, "CDC A"},
+
+	{0x14, 0x00, "VREF"},
+	{0x14, 0x06, "LPDDR"},
+
+	{0x1e, 0x00, "BUA"},
+	{0x1e, 0x03, "4UICC"},
+
+	{0},
+};
+
+static char *qpnp_db_periph(uint8_t type, uint8_t subtype)
+{
+	for (int i = 0; qpnp_db[i].name != NULL; ++i)
+		if (qpnp_db[i].type == type && qpnp_db[i].subtype == subtype)
+			return qpnp_db[i].name;
+
+	return "?";
+}
+
+static void cmd_oem_dump_spmi_qpnp(const char *arg, void *data, unsigned sz)
+{
+	char response[MAX_RSP_SIZE];
+	uint8_t type, subtype;
+	int lsid, pid;
+	snprintf(response, sizeof(response), " S  PID | Type |  Sub |   Label", type, subtype);
+	fastboot_info(response);
+	for (lsid = 0; lsid < 2; ++lsid) {
+		for (pid = 0; pid <= 0xff; ++pid) {
+			type =    pm8x41_reg_read(lsid << 16 | pid << 8 | 0x04);
+			subtype = pm8x41_reg_read(lsid << 16 | pid << 8 | 0x05);
+			if (type == 0x14 && subtype == 0x10)
+				continue;
+			snprintf(response, sizeof(response),
+				 " %1hhd 0x%02hhx | 0x%02hhx | 0x%02hhx | %s; %s",
+				 lsid, pid, type, subtype,
+				 qpnp_db_periph(type, 0),
+				 qpnp_db_periph(type, subtype));
+			fastboot_info(response);
+		}
+	}
+	fastboot_okay("");
+}
+
 static void cmd_oem_dump_smd_rpm(const char *arg, void *data, unsigned sz)
 {
 	smd_channel_alloc_entry_t *entries;
@@ -450,6 +585,7 @@ void fastboot_extra_register_commands(void) {
 	fastboot_register("oem reboot-edl", cmd_oem_reboot_edl);
 	fastboot_register("oem dump-cpuid", cmd_oem_dump_cpuid);
 	fastboot_register("oem dump-regulators", cmd_oem_dump_regulators);
+	fastboot_register("oem dump-spmi-qpnp", cmd_oem_dump_spmi_qpnp);
 	fastboot_register("oem dump-smd-rpm", cmd_oem_dump_smd_rpm);
 
 #ifdef BOOT_ROM_BASE
