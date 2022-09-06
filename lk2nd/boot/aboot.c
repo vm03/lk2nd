@@ -34,7 +34,7 @@ void action_aboot_register()
 			(void*)LK2ND_ABOOT_ACTION_BOOT);
 	lk2nd_boot_add_action("partition: recovery", -10, action_aboot,
 			(void*)LK2ND_ABOOT_ACTION_RECOVERY);
-	lk2nd_boot_add_action("Fastboot", -20, action_aboot,
+	lk2nd_boot_add_action("Fastboot", 1020, action_aboot,
 			(void*)LK2ND_ABOOT_ACTION_FASTBOOT);
 	lk2nd_boot_add_action("Power off", -30, action_aboot_poweroff, NULL);
 }
